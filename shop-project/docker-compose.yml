@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15
+    container_name: shop_db
+    environment:
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: shop
+    ports:
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - app_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "0.0.0.0:3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+    networks:
+      - app_network
+    restart: unless-stopped
+    
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
