@@ -38,7 +38,7 @@ app.get('/api/users', async (req, res) => {
 
 app.get('/api/orders/:userId', async (req, res) => {
     const {userId} = req.params;
-    const {rows} = await pool.query(`SELECT u.name AS user_name,o.id, o.delivery_address, o.status, o.created_at 
+    const {rows} = await pool.query(`SELECT u.name AS user_name, o.id, o.delivery_address, o.status, o.created_at 
       FROM orders o
         JOIN users u ON o.user_id = u.id
           WHERE o.user_id = $1`, [userId]);

@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
-import img1 from '../assets/img/product1.jpg';
-import img2 from '../assets/img/product2.jpg';
-import img3 from '../assets/img/product3.jpg';
+import axios from 'axios';
 
 function Home() {
     const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const fetchProducts = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get('http://localhost:3000/api/products');
+            setProducts(response.data);
+        } catch(e) {
+            console.error(e.description);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     useEffect(() => {
-        setProducts([
-            {id: 1, name: "Product1", price: "800", image: img1},
-            {id: 2, name: "Product2", price: "700", image: img2},
-            {id: 3, name: "Product3", price: "600", image: img3},
-        ]);
+        fetchProducts();
     }, []);
+
+    if (loading) return <p style={{ padding: 20, color: "black" }}>Загрузка...</p>;
 
     return (
         <div className="products-container">
