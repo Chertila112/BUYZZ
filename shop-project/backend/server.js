@@ -36,7 +36,16 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Маршруты для товаров
+app.get('/api/orders/:userId', async (req, res) => {
+    const {userId} = req.params;
+    const {rows} = await pool.query(`SELECT u.name AS user_name,o.id, o.delivery_address, o.status, o.created_at 
+      FROM orders o
+        JOIN users u ON o.user_id = u.id
+          WHERE o.user_id = $1`, [userId]);
+      console.log('Результат запроса:', rows);
+      res.json(rows);
+  });
+
 app.get('/api/products', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM products');
   res.json(rows);
@@ -51,7 +60,6 @@ app.post('/api/products', async (req, res) => {
   res.status(201).send('Product added');
 });
 
-// Маршруты для корзины
 app.get('/api/cart/:userId', async (req, res) => {
   const { userId } = req.params;
   const { rows } = await pool.query(
