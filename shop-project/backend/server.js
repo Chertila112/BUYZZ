@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const { use } = require('react');
 
 
 const app = express();
@@ -36,7 +37,20 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Маршруты для товаров
+app.get('api/orders/:user_id', async (req, res) => {
+  try {
+    const {userId} = req.params;
+    const {rows} = await pool.query(`SELECT (SELECT name FROM users WHERE id = $1), o.id, o.delivery_address, o.status, o.created_at 
+      FROM orders o
+      WHERE o.id = (SELECT id FROM orders WHERE user_id = $1);`, [userId]);
+    res.json(rows);
+  }
+  catch(err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
 app.get('/api/products', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM products');
   res.json(rows);
@@ -51,7 +65,6 @@ app.post('/api/products', async (req, res) => {
   res.status(201).send('Product added');
 });
 
-// Маршруты для корзины
 app.get('/api/cart/:userId', async (req, res) => {
   const { userId } = req.params;
   const { rows } = await pool.query(
