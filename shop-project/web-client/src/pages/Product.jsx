@@ -26,7 +26,7 @@ function Product() {
     }, [id]);
 
     if (loading) return <p style={{ padding: 20, color: "black" }}>Загрузка...</p>;
-    if (!product) return <p style={{ padding: 20 }}>Товар не найден</p>;
+    if (!product) return <p style={{ padding: 20, color: "black" }}>Товар не найден</p>;
 
     return (
         !loading&&product&&

@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(cors());
@@ -72,6 +72,51 @@ app.get('/api/cart/:userId', async (req, res) => {
   res.json(rows);
 });
 
+app.post('/api/register', async (req, res) => {
+  const { name, login, password } = req.body;
+
+  try {
+    const exsitingUser = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+    if (exsitingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'The user with this email already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(
+      'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3)',
+      [name, login, hashedPassword]
+    );
+
+    res.status(201).json({ message: 'Registration is successful' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Server error');
+  }
+});
+
+app.post('/api/login', async (req, res) => {
+  const { login, password } = req.body;
+
+  try {
+    const userResult = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+
+    if (userResult.rows.length == 0) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const user = userResult.rows[0];
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid email or password' }); 
+    }
+
+    res.json({ message: 'Login is successful', user: { id: user.id, name: user.name, login: user.login } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Server error')
+  }
+})
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
