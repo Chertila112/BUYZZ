@@ -3,6 +3,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
@@ -16,15 +17,27 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-const corsOptions = {
-  origin: "*",
-  optionsSuccessStatus: 200
+// JWT auth middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
+
+  if (!token) return res.status(401).json({ error: 'Нет токена' });
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key', (err, user) => {
+    if (err) return res.status(403).json({ error: 'Неверный токен' });
+
+    req.userId = user.userId;
+    next();
+  });
 }
 
-app.use(cors(corsOptions));
-pool.connect()
-  .then(() => console.log('Connected to PostgreSQL'))
-  .catch(err => console.error('Connection error', err.stack));
+pool
+  .connect()
+  .then(() => console.log('Подключено к PostgreSQL'))
+  .catch((err) => console.error('Ошибка подключения', err.stack));
+
+// ======================= Users =======================
 
 app.get('/api/users', async (req, res) => {
   try {
@@ -32,92 +45,255 @@ app.get('/api/users', async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).send('Server error');
+    res.status(500).send('Ошибка сервера');
   }
 });
 
-app.get('/api/orders/:userId', async (req, res) => {
-    const {userId} = req.params;
-    const {rows} = await pool.query(`SELECT u.name AS user_name, o.id, o.delivery_address, o.status, o.created_at 
-      FROM orders o
-        JOIN users u ON o.user_id = u.id
-          WHERE o.user_id = $1`, [userId]);
-      console.log('Результат запроса:', rows);
-      res.json(rows);
-  });
+app.get('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { rows } = await pool.query('SELECT id, name, login FROM users WHERE id = $1', [userId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка получении профиля' });
+  }
+});
+
+// ======================= Auth =======================
+
+app.post('/auth/login', async (req, res) => {
+  const { login, password } = req.body;
+
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Пользователь не найден' });
+    }
+
+    const user = result.rows[0];
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Неверный пароль' });
+    }
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your_secret_key', {
+      expiresIn: '1h',
+    });
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        login: user.login,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+app.post('/auth/register', async (req, res) => {
+  const { name, login, password } = req.body;
+
+  try {
+    const existing = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Такой логин уже существует' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3) RETURNING id, name, login',
+      [name, login, passwordHash]
+    );
+
+    const user = result.rows[0];
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your_secret_key', {
+      expiresIn: '1h',
+    });
+
+    res.json({ token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка регистрации' });
+  }
+});
+
+// ======================= Products =======================
 
 app.get('/api/products', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM products');
-  res.json(rows);
+  try {
+    const { rows } = await pool.query('SELECT * FROM products');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при получении товаров' });
+  }
 });
 
 app.post('/api/products', async (req, res) => {
   const { name, price, description, stock_quantity } = req.body;
-  await pool.query(
-    'INSERT INTO products (name, price, description, stock_quantity) VALUES ($1, $2, $3, $4)',
-    [name, price, description, stock_quantity]
-  );
-  res.status(201).send('Product added');
-});
-
-app.get('/api/cart/:userId', async (req, res) => {
-  const { userId } = req.params;
-  const { rows } = await pool.query(
-    `SELECT ci.*, p.name, p.price 
-     FROM cart_items ci
-     JOIN products p ON ci.product_id = p.id
-     WHERE ci.cart_id = (SELECT id FROM carts WHERE user_id = $1)`,
-    [userId]
-  );
-  res.json(rows);
-});
-
-app.post('/api/register', async (req, res) => {
-  const { name, login, password } = req.body;
 
   try {
-    const exsitingUser = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
-    if (exsitingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'The user with this email already exists' });
+    await pool.query(
+      'INSERT INTO products (name, price, description, stock_quantity) VALUES ($1, $2, $3, $4)',
+      [name, price, description, stock_quantity]
+    );
+    res.status(201).send('Товар добавлен');
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при добавлении товара' });
+  }
+});
+
+// ======================= Cart =======================
+
+app.get('/api/cart', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.*, p.name, p.price 
+       FROM cart_items ci
+       JOIN products p ON ci.product_id = p.id
+       WHERE ci.cart_id = (SELECT id FROM carts WHERE user_id = $1)`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Ошибка получения корзины' });
+  }
+});
+
+app.post('/api/cart/items', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+  const { product_id, quantity } = req.body;
+
+  try {
+    const user = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (user.rows.length === 0) {
+      return res.status(400).json({ error: 'Пользователь не найден' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    let cartResult = await pool.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
+    let cartId;
+
+    if (cartResult.rows.length === 0) {
+      const newCart = await pool.query(
+        'INSERT INTO carts (user_id) VALUES ($1) RETURNING id',
+        [userId]
+      );
+      cartId = newCart.rows[0].id;
+    } else {
+      cartId = cartResult.rows[0].id;
+    }
+
     await pool.query(
-      'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3)',
-      [name, login, hashedPassword]
+      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)',
+      [cartId, product_id, quantity]
     );
 
-    res.status(201).json({ message: 'Registration is successful' });
-  } catch (e) {
-    console.error(e);
-    res.status(500).send('Server error');
+    res.status(201).json({ message: 'Добавлено в корзину', cartId });
+  } catch (error) {
+    console.error('Ошибка при добавлении в корзину:', error);
+    res.status(500).json({ error: 'Ошибка при добавлении в корзину' });
   }
 });
 
-app.post('/api/login', async (req, res) => {
-  const { login, password } = req.body;
+app.get('/api/cart/items', authenticateToken, async (req, res) => {
+  const userId = req.userId;
 
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+    const { rows } = await pool.query(`
+      SELECT ci.*, p.name, p.price 
+      FROM cart_items ci
+      JOIN products p ON ci.product_id = p.id
+      WHERE ci.cart_id = (SELECT id FROM carts WHERE user_id = $1)
+    `, [userId]);
 
-    if (userResult.rows.length == 0) {
-      return res.status(400).json({ message: 'Invalid email or password' });
-    }
-
-    const user = userResult.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' }); 
-    }
-
-    res.json({ message: 'Login is successful', user: { id: user.id, name: user.name, login: user.login } });
-  } catch (e) {
-    console.error(e);
-    res.status(500).send('Server error')
+    res.json(rows);
+  } catch (err) {
+    console.error('Ошибка получения корзины:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
-})
+});
+
+// ======================= Orders =======================
+
+app.get('/api/orders', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.id, o.delivery_address, o.status, o.created_at 
+       FROM orders o
+       WHERE o.user_id = $1`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Ошибка при получении заказов');
+  }
+});
+
+app.get('/api/orders/:orderId/items', authenticateToken, async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM order_items WHERE order_id = $1`,
+      [orderId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Ошибка запроса позиций заказа');
+  }
+});
+
+app.get('/api/orders/:orderId/history', authenticateToken, async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM order_status_history WHERE order_id = $1`,
+      [orderId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Ошибка запроса истории заказа');
+  }
+});
+
+app.post('/api/orders', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+  const { delivery_address } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO orders (user_id, delivery_address)
+       VALUES ($1, $2) RETURNING *`,
+      [userId, delivery_address]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Ошибка создания заказа');
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });
