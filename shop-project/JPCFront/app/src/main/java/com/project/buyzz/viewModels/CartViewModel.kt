@@ -1,0 +1,39 @@
+package com.project.buyzz.viewModels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.project.buyzz.models.CartItems
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+sealed class CartState {
+    object Loading : CartState()
+    data class Success(val items: List<CartItems>) : CartState()
+    data class Error(val message: String) : CartState()
+}
+
+class CartViewModel : ViewModel() {
+    private val _cartState = MutableStateFlow<CartState>(CartState.Loading)
+    val cartState: StateFlow<CartState> = _cartState
+
+    init {
+        loadCart()
+    }
+
+    fun loadCart() {
+        viewModelScope.launch {
+            _cartState.value = CartState.Loading
+            try {
+                val response = RetrofitClient.apiService.getCartItems()
+                if (response.isSuccessful && response.body() != null) {
+                    _cartState.value = CartState.Success(response.body()!!)
+                } else {
+                    _cartState.value = CartState.Error("Ошибка загрузки корзины")
+                }
+            } catch (e: Exception) {
+                _cartState.value = CartState.Error("Ошибка: ${e.localizedMessage}")
+            }
+        }
+    }
+}
