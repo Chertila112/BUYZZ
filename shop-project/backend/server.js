@@ -24,7 +24,7 @@ function authenticateToken(req, res, next) {
 
   if (!token) return res.status(401).json({ error: 'Нет токена' });
 
-  jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key', (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'complex_secret_key_at_least_32_chars_long', (err, user) => {
     if (err) return res.status(403).json({ error: 'Неверный токен' });
 
     req.userId = user.userId;
@@ -84,7 +84,7 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Неверный пароль' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your_secret_key', {
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'complex_secret_key_at_least_32_chars_long', {
       expiresIn: '1h',
     });
 
@@ -118,7 +118,7 @@ app.post('/auth/register', async (req, res) => {
     );
 
     const user = result.rows[0];
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'your_secret_key', {
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'complex_secret_key_at_least_32_chars_long', {
       expiresIn: '1h',
     });
 
@@ -213,7 +213,13 @@ app.get('/api/cart/items', authenticateToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(`
-      SELECT ci.*, p.name, p.price 
+      SELECT 
+        ci.id,
+        ci.quantity,
+        p.id as product_id,
+        p.name,
+        p.price,
+        p.description
       FROM cart_items ci
       JOIN products p ON ci.product_id = p.id
       WHERE ci.cart_id = (SELECT id FROM carts WHERE user_id = $1)

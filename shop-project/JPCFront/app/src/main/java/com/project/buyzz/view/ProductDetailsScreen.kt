@@ -1,5 +1,7 @@
 package com.project.buyzz.view
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -13,8 +15,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.project.buyzz.R
 import com.project.buyzz.viewModels.ProductDetailsState
 import com.project.buyzz.viewModels.ProductDetailsViewModel
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 
 @Composable
 fun ProductDetailsScreen(
@@ -44,31 +49,59 @@ fun ProductDetailsScreen(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .height(180.dp)
-                        .fillMaxWidth()
-                        .background(Color(0xFFE1BEE7)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Здесь будет изображение", color = Color.White)
+                val imageResId = remember(product.id) {
+                    val resourceName = "product_${product.id}"
+                    getResourceId(resourceName).takeIf { it != 0 }
+                        ?: R.drawable.placeholder_image
                 }
 
-                Text(product.name, style = MaterialTheme.typography.headlineSmall, color = Color(0xFFE91E63))
-                Text(product.description, style = MaterialTheme.typography.bodyMedium)
-                Text("₽ ${product.price}", style = MaterialTheme.typography.titleMedium)
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = "Изображение товара",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .height(240.dp)
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(Color(0xFFF5F5F5))
+                )
+
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFFE91E63)
+                )
+
+                Text(
+                    text = product.description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "₽${product.price}",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
                 Button(
                     onClick = { viewModel.addToCart(product.id) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Добавить в корзину", color = Color.White)
                 }
 
                 if (s.addedToCart) {
-                    Text("Добавлено в корзину", color = Color(0xFF4CAF50))
+                    Text(
+                        text = "Добавлено в корзину",
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 }
             }
         }
     }
 }
+
+//

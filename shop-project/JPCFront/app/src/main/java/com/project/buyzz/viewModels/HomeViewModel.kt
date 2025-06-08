@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed class ProductState {
-    object Loading : ProductState()
+    data object Loading : ProductState()
     data class Success(val products: List<Products>) : ProductState()
     data class Error(val message: String) : ProductState()
 }

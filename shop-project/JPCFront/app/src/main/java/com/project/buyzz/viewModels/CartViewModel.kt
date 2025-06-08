@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed class CartState {
-    object Loading : CartState()
+    data object Loading : CartState()
     data class Success(val items: List<CartItems>) : CartState()
     data class Error(val message: String) : CartState()
 }

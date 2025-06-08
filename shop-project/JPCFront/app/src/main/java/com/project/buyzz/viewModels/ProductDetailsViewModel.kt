@@ -2,7 +2,6 @@ package com.project.buyzz.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.project.buyzz.models.CartItems
 import com.project.buyzz.models.Products
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,19 +30,28 @@ class ProductDetailsViewModel : ViewModel() {
     fun addToCart(productId: Int) {
         viewModelScope.launch {
             try {
-                val cartItem = CartItems(id = 0, cartId = 1, productId = productId, quantity = 1)
-                RetrofitClient.apiService.addToCart(cartItem)
-                (_uiState.value as? ProductDetailsState.Success)?.let {
-                    _uiState.value = it.copy(addedToCart = true)
+                val requestBody = mapOf(
+                    "product_id" to productId,
+                    "quantity" to 1
+                )
+
+                val response = RetrofitClient.apiService.addToCart(requestBody)
+
+                if (response.isSuccessful) {
+                    (_uiState.value as? ProductDetailsState.Success)?.let {
+                        _uiState.value = it.copy(addedToCart = true)
+                    }
+                } else {
+                    _uiState.value = ProductDetailsState.Error("Не удалось добавить в корзину")
                 }
             } catch (e: Exception) {
+                _uiState.value = ProductDetailsState.Error("Ошибка: ${e.message}")
             }
         }
     }
 }
-
 sealed class ProductDetailsState {
-    object Loading : ProductDetailsState()
+    data object Loading : ProductDetailsState()
     data class Error(val message: String) : ProductDetailsState()
     data class Success(val product: Products, val addedToCart: Boolean = false) : ProductDetailsState()
 }

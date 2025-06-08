@@ -1,6 +1,7 @@
 import androidx.lifecycle.viewModelScope
 import com.project.buyzz.API.ApiService
 import com.project.buyzz.models.Products
+import com.project.buyzz.viewModels.BaseViewModel
 import kotlinx.coroutines.launch
 
 class ProductViewModel(private val api: ApiService) : BaseViewModel<List<Products>>() {

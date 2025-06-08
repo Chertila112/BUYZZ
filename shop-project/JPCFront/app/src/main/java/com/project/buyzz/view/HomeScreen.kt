@@ -1,6 +1,8 @@
 package com.project.buyzz.view
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,25 +10,41 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.project.buyzz.models.Products
-import com.project.buyzz.ui.theme.MyApplicationTheme
 import com.project.buyzz.viewModels.HomeViewModel
 import com.project.buyzz.viewModels.ProductState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.project.buyzz.R // убедись, что есть R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = viewModel(),
+    onProductClick: (Products) -> Unit,
+    onCartClick: () -> Unit
+) {
     val state by viewModel.state.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Buyzz — Продукты") },
+            CenterAlignedTopAppBar(
+                title = { Text("Buyzz") },
+                navigationIcon = {
+                    IconButton(onClick = onCartClick) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_cart),
+                            contentDescription = "Корзина",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFE91E63),
+                    containerColor = Color(0xFFCE4775),
                     titleContentColor = Color.White
                 )
             )
@@ -41,7 +59,7 @@ fun HomeScreen(viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.v
                         .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFE91E63))
+                    CircularProgressIndicator(color = Color(0xFFC0446F))
                 }
             }
 
@@ -55,14 +73,13 @@ fun HomeScreen(viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.v
 
             is ProductState.Success -> {
                 val products = (state as ProductState.Success).products
-
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.padding(padding)
                 ) {
                     items(products) { product ->
-                        ProductCard(product)
+                        ProductCard(product, onClick = { onProductClick(product) })
                     }
                 }
             }
@@ -71,33 +88,45 @@ fun HomeScreen(viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.v
 }
 
 @Composable
-fun ProductCard(product: Products) {
+fun ProductCard(product: Products, onClick: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF1F4)),
-        elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight()
+            .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(product.name, style = MaterialTheme.typography.titleMedium, color = Color(0xFFE91E63))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(product.description, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "₽ ${product.price}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFFD81B60)
+        Column(Modifier.padding(16.dp)) {
+            // Получаем ресурс изображения по ID продукта
+            val imageResId = remember(product.id) {
+                val resourceName = "product_${product.id}" // Формируем имя ресурса
+                val resId = getResourceId(resourceName) // Получаем ID ресурса
+                if (resId != 0) resId else R.drawable.placeholder_image // Fallback
+            }
+
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = "Изображение товара",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .height(180.dp)
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFE91E63)
+                )
+                Text(
+                    text = "₽${product.price}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFFD81B60)
+                )
+            }
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun Preview() {
-    MyApplicationTheme {
-        HomeScreen()
     }
 }
