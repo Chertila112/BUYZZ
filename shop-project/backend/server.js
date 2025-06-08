@@ -2,8 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-const { use } = require('react');
-
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
@@ -77,8 +77,6 @@ app.get('/api/cart/:userId', async (req, res) => {
   res.json(rows);
 });
 
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
 app.post('/auth/login', async (req, res) => {
     try {
@@ -113,6 +111,32 @@ app.post('/auth/login', async (req, res) => {
             }
         });
         
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+app.post('/auth/register', async (req, res) => {
+    try {
+        const { name, login, password } = req.body;
+
+        const existing = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Login already exists' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const result = await pool.query(
+            'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3) RETURNING id, name, login',
+            [name, login, passwordHash]
+        );
+
+        const user = result.rows[0];
+        const token = jwt.sign({ userId: user.id }, 'secret_key', { expiresIn: '1h' });
+
+        res.json({ token, user });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
