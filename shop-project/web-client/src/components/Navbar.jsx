@@ -8,6 +8,7 @@ function NavBar({ user, setUser }) {
   const hadleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/");
   };
 

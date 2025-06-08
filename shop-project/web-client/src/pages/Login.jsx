@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import '../assets/style/Login.css';
 
 function Login({ onLogin }) {
@@ -13,25 +14,24 @@ function Login({ onLogin }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password })
-      });
+      // Логинимся
+      const { data } = await axios.post('http://localhost:3000/auth/login', { login, password });
 
-      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      if (!res.ok) {
-        setError(data.message || 'Ошибка входа');
-      } else {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        if (onLogin) {
-          onLogin(data.user);
-        }
-        navigate('/');
+      if (onLogin) {
+        onLogin(data.user);
       }
+
+      navigate('/');
     } catch (err) {
-      setError('Сервер недоступен');
+      if (err.response) {
+        setError(err.response.data.error || 'Ошибка входа');
+      } else {
+        setError('Сервер недоступен');
+      }
+      console.error(err);
     }
   };
 

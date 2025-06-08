@@ -1,25 +1,31 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; 
+import axios from "axios";
 import '../assets/style/Login.css';
-import Login from "./Login";
 
 function Register() {
   const [name, setName] = useState('');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    try {
-      const response = await fetch('http://localhost:3000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, login, password })
-      });
 
-      const data = await response.json();
-      alert(data.message);
+    try {
+      const { data } = await axios.post('http://localhost:3000/auth/register', { name, login, password });
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/');
     } catch (err) {
-      console.error('Ошибка регистрации', err);
+      if (err.response) {
+        alert(err.response.data.error || 'Ошибка регистрации');
+      } else {
+        alert('Произошла ошибка во время регистрации');
+      }
+      console.error('Error during registration', err);
     }
   };
 
