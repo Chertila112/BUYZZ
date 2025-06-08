@@ -46,6 +46,36 @@ app.get('/api/orders/:userId', async (req, res) => {
       res.json(rows);
   });
 
+app.post('/api/cart/:userId/items', async (req, res) => {
+  const { userId } = req.params;
+  const { product_id, quantity } = req.body;
+
+  try {
+    let cartResult = await pool.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
+
+    let cartId;
+    if (cartResult.rows.length === 0) {
+      const newCart = await pool.query(
+        'INSERT INTO carts (user_id) VALUES ($1) RETURNING id',
+        [userId]
+      );
+      cartId = newCart.rows[0].id;
+    } else {
+      cartId = cartResult.rows[0].id;
+    }
+
+    await pool.query(
+      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)',
+      [cartId, product_id, quantity]
+    );
+
+    res.status(201).send({ message: 'Товар добавлен в корзину', cartId });
+  } catch (error) {
+    console.error('Ошибка при добавлении в корзину:', error);
+    res.status(500).send('Ошибка сервера');
+  }
+});
+
 app.get('/api/products', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM products');
   res.json(rows);
@@ -113,6 +143,31 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
+app.post('/auth/register', async (req, res) => {
+    try {
+        const { name, login, password } = req.body;
+
+        const existing = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Login already exists' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const result = await pool.query(
+            'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3) RETURNING id, name, login',
+            [name, login, passwordHash]
+        );
+
+
+        const user = result.rows[0];
+        const token = jwt.sign({ userId: user.id }, 'secret_key', { expiresIn: '1h' });
+
+        res.json({ token, user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
