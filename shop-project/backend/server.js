@@ -196,10 +196,22 @@ app.post('/api/cart/items', authenticateToken, async (req, res) => {
       cartId = cartResult.rows[0].id;
     }
 
-    await pool.query(
-      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)',
-      [cartId, product_id, quantity]
+    const existing = await pool.query(
+      'SELECT id, quantity FROM cart_items WHERE cart_id = $1 AND product_id = $2',
+      [cartId, product_id]
     );
+    
+    if (existing.rows.length > 0) {
+      await pool.query(
+        'UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2',
+        [quantity, existing.rows[0].id]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)',
+        [cartId, product_id, quantity]
+      );
+    }
 
     res.status(201).json({ message: 'Добавлено в корзину', cartId });
   } catch (error) {
@@ -229,6 +241,69 @@ app.get('/api/cart/items', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Ошибка получения корзины:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+app.patch('/api/cart/items/:itemId', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+  const { itemId } = req.params;
+  const { delta } = req.body; // +1 или -1
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.id, ci.quantity 
+       FROM cart_items ci
+       JOIN carts c ON ci.cart_id = c.id
+       WHERE ci.id = $1 AND c.user_id = $2`,
+      [itemId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Элемент не найден или доступ запрещён' });
+    }
+
+    const currentQty = rows[0].quantity;
+    const newQty = currentQty + delta;
+
+    if (newQty < 1) {
+      return res.status(400).json({ error: 'Количество не может быть меньше 1' });
+    }
+
+    await pool.query(
+      'UPDATE cart_items SET quantity = $1 WHERE id = $2',
+      [newQty, itemId]
+    );
+
+    res.status(200).json({ message: 'Количество обновлено', quantity: newQty });
+  } catch (err) {
+    console.error('Ошибка при обновлении количества:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+
+app.delete('/api/cart/remove/:itemId', authenticateToken, async (req, res) => {
+  const userId = req.userId;
+  const itemId = req.params.itemId;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.id FROM cart_items ci
+       JOIN carts c ON ci.cart_id = c.id
+       WHERE ci.id = $1 AND c.user_id = $2`,
+      [itemId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Элемент не найден или доступ запрещён' });
+    }
+
+    await pool.query('DELETE FROM cart_items WHERE id = $1', [itemId]);
+
+    res.status(200).json({ message: 'Элемент удалён' });
+  } catch (err) {
+    console.error('Ошибка при удалении из корзины:', err);
+    res.status(500).json({ error: 'Ошибка сервера при удалении элемента' });
   }
 });
 
