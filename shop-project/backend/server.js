@@ -72,6 +72,47 @@ app.get('/api/cart/:userId', async (req, res) => {
   res.json(rows);
 });
 
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+app.post('/auth/login', async (req, res) => {
+    try {
+        const { login, password } = req.body;
+        
+        const user = await pool.query(
+            'SELECT * FROM users WHERE login = $1', 
+            [login]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        
+        const isValid = await bcrypt.compare(password, user.rows[0].password_hash);
+        if (!isValid) {
+            return res.status(401).json({ error: 'Invalid password' });
+        }
+        
+        const token = jwt.sign(
+            { userId: user.rows[0].id },
+            'your_secret_key',
+            { expiresIn: '1h' }
+        );
+        
+        res.json({
+            token,
+            user: {
+                id: user.rows[0].id,
+                name: user.rows[0].name,
+                login: user.rows[0].login
+            }
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
