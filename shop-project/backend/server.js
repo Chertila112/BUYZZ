@@ -51,6 +51,36 @@ app.get('api/orders/:user_id', async (req, res) => {
   }
 });
 
+app.post('/api/cart/:userId/items', async (req, res) => {
+  const { userId } = req.params;
+  const { product_id, quantity } = req.body;
+
+  try {
+    let cartResult = await pool.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
+
+    let cartId;
+    if (cartResult.rows.length === 0) {
+      const newCart = await pool.query(
+        'INSERT INTO carts (user_id) VALUES ($1) RETURNING id',
+        [userId]
+      );
+      cartId = newCart.rows[0].id;
+    } else {
+      cartId = cartResult.rows[0].id;
+    }
+
+    await pool.query(
+      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)',
+      [cartId, product_id, quantity]
+    );
+
+    res.status(201).send({ message: 'Товар добавлен в корзину', cartId });
+  } catch (error) {
+    console.error('Ошибка при добавлении в корзину:', error);
+    res.status(500).send('Ошибка сервера');
+  }
+});
+
 app.get('/api/products', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM products');
   res.json(rows);
@@ -132,6 +162,7 @@ app.post('/auth/register', async (req, res) => {
             'INSERT INTO users (name, login, password_hash) VALUES ($1, $2, $3) RETURNING id, name, login',
             [name, login, passwordHash]
         );
+
 
         const user = result.rows[0];
         const token = jwt.sign({ userId: user.id }, 'secret_key', { expiresIn: '1h' });
