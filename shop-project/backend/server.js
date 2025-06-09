@@ -17,7 +17,7 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-// JWT auth middleware
+// ==================== JWT auth middleware ==================
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
@@ -361,11 +361,11 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   const { delivery_address } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO orders (user_id, delivery_address)
-       VALUES ($1, $2) RETURNING *`,
-      [userId, delivery_address]
-    );
+      const result = await pool.query(
+  `INSERT INTO orders (user_id, delivery_address, status)
+   VALUES ($1, $2, $3) RETURNING *`,
+  [userId, delivery_address, 'pending']
+  );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
