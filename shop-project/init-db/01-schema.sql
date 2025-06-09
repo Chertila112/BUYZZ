@@ -21,7 +21,7 @@ CREATE TABLE ORDERS (
     id SERIAL PRIMARY KEY ,
     user_id INTEGER NOT NULL,
     delivery_address VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES USERS(id)
 );
