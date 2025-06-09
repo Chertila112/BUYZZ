@@ -1,6 +1,5 @@
 import "../assets/style/Navbar.css";
-import { Link, useNavigate } from 'react-router-dom';
-
+import { NavLink, useNavigate } from 'react-router-dom';
 
 function NavBar({ user, setUser }) {
   const navigate = useNavigate();
@@ -14,21 +13,28 @@ function NavBar({ user, setUser }) {
 
   return (
     <nav className="navbar">
-      <Link to="/">
+      <NavLink to="/">
         <img src="/logo1.png" alt="Buyzz Logo" className="site-logo" />
-      </Link>
+      </NavLink>
       <div className="nav-links">
-        
-        {user? (
+        {user ? (
           <>
-            <span>Привет, {user.name}</span>
-            <Link to="/cart">Корзина</Link>
+            <NavLink to="/cart" className={({ isActive }) => isActive ? "active-link" : undefined}>
+              Корзина
+            </NavLink>
+            <NavLink to="/account" className={({ isActive }) => isActive ? "active-link" : undefined}>
+              Личный кабинет
+            </NavLink>
             <button onClick={hadleLogout} className="link-style">Выйти</button>
           </>
         ) : (
           <>
-            <Link to="/login">Вход</Link>
-            <Link to="/register">Регистрация</Link>
+            <NavLink to="/login" className={({ isActive }) => isActive ? "active-link" : undefined}>
+              Вход
+            </NavLink>
+            <NavLink to="/register" className={({ isActive }) => isActive ? "active-link" : undefined}>
+              Регистрация
+            </NavLink>
           </>
         )}
       </div>

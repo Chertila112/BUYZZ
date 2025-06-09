@@ -35,16 +35,6 @@
   color: #4a043b;
 }
 
-.nav-links span {
-  color: white;
-  margin-left: 20px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1.5rem;
-  transition: color 0.3s;
-  color: #901d77;
-}
-
 .link-style {
   background: none;
   border: none;
@@ -63,4 +53,10 @@
 
 .content {
   padding-top: 70px;
+}
+
+.active-link {
+  font-weight: bold;
+  color: #ff6600;
+  text-decoration: underline;
 }

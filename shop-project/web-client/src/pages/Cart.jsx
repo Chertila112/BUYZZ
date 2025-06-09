@@ -1,11 +1,14 @@
   import { useEffect, useState } from "react";
+  import { useNavigate } from 'react-router-dom';
   import axios from 'axios';
   import '../assets/style/Cart.css';
 
   function Cart() {
     const [cartItems, setCartItems] = useState([]);
     const [error, setError] = useState(null);
-    
+    const [deliveryAddress, setDeliveryAddress] = useState("");
+    const navigate = useNavigate();
+
     useEffect(() => {
       const loadCart = async () => {
         const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -73,6 +76,31 @@
 
     const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
+    const handleCheckout = async () => {
+      const token = localStorage.getItem("token");
+      
+      if (!deliveryAddress.trim()) {
+        alert("Введите адрес доставки");
+        return;
+      }
+      
+      try {
+        const res = await axios.post("http://localhost:3000/api/orders", {
+          delivery_address: deliveryAddress
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        alert("Заказ оформлен успешно!");
+        navigate('/account');
+      } catch (e) {
+        console.error("Error during making purchase: ", e);
+        alert("Ошибка при оформлении заказа");
+      }
+    };
+
     return (
       <div className="cart-container">
         <h1>Корзина</h1>
@@ -110,7 +138,18 @@
             </ul>
 
             <h2 className="cart-total">Итого: {totalPrice.toFixed(2)} ₽</h2>
-            <button className="checkout-button">Оформить заказ</button>
+            {cartItems.length > 0 && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Введите адрес доставки"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  className="delivery-input"
+                />
+                <button className="checkout-button" onClick={handleCheckout}>Оформить заказ</button>
+              </>
+            )}
           </>
         )}
       </div>

@@ -14,7 +14,6 @@ function Login({ onLogin }) {
     setError('');
 
     try {
-      // Логинимся
       const { data } = await axios.post('http://localhost:3000/auth/login', { login, password });
 
       localStorage.setItem('token', data.token);

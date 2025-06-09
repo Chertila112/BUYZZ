@@ -247,7 +247,7 @@ app.get('/api/cart/items', authenticateToken, async (req, res) => {
 app.patch('/api/cart/items/:itemId', authenticateToken, async (req, res) => {
   const userId = req.userId;
   const { itemId } = req.params;
-  const { delta } = req.body; // +1 или -1
+  const { delta } = req.body;
 
   try {
     const { rows } = await pool.query(

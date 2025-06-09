@@ -1,0 +1,64 @@
+.account-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 2rem;
+  font-family: sans-serif;
+}
+
+.account-container h2 {
+  max-width: 600px;
+  color: #4a043b;
+}
+
+.account-container p {
+  max-width: 600px;
+  color: #4a043b;
+}
+
+.info-section {
+  margin-bottom: 2rem;
+  background-color: #fa84ec;
+  padding: 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #fa84ec;
+}
+
+.info-section p {
+  color: #4a043b;
+}
+
+.info-section strong {
+  color: #4a043b;
+}
+
+.greeting {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #4a043b;
+}
+
+.orders-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.orders-list p {
+  color: #4a043b;
+}
+
+.orders-list li {
+  background-color: #fa84ec;
+  padding: 0.8rem;
+  border-radius: 6px;
+  margin-bottom: 0.6rem;
+  border-left: 4px solid #4caf50;
+  color: #4a043b;
+}
+
+.message {
+  color: green;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}

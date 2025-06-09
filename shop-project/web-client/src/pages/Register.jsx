@@ -35,15 +35,15 @@ function Register() {
       <form onSubmit={handleRegister} className="login-form">
         <label>
           Имя
-          <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+          <input type="text" placeholder="Имя" value={name} onChange={e => setName(e.target.value)} required />
         </label>
         <label>
           Email
-          <input type="email" value={login} onChange={e => setLogin(e.target.value)} required />
+          <input type="email" placeholder="example@mail.com" value={login} onChange={e => setLogin(e.target.value)} required />
         </label>
         <label>
           Пароль
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input type="password" placeholder="Введите пароль" value={password} onChange={e => setPassword(e.target.value)} required />
         </label>
         <button type="submit">Зарегистрироваться</button>
       </form>

@@ -29,7 +29,12 @@
   font-size: 1rem;
   box-sizing: border-box;
   transition: border-color 0.3s;
-  background-color: #ddd;
+  background-color: #fe9ffb;
+  color: #4f043f;
+}
+
+.login-form input::placeholder {
+  color: #a41485;
 }
 
 .login-form button {
@@ -48,4 +53,19 @@
 
 .login-form button:hover {
   background-color: #4f043f;
+}
+
+.error {
+  color: #e53935;
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+input:-webkit-autofill {
+  background-color: #eb72e7 !important;
+  color: #760f60 !important; 
+  -webkit-box-shadow: 0 0 0px 1000px #eb72e7 inset !important;
+  -webkit-text-fill-color: #760f60 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

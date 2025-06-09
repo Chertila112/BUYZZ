@@ -119,3 +119,23 @@
     min-width: 20px;
     text-align: center;
   }
+
+.delivery-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+  background-color: #fe9ffb;
+  color: #4f043f;
+}
+
+.delivery-input:focus {
+  border-color: #cc18a5;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(204, 24, 165, 0.2);
+}
