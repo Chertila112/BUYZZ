@@ -26,7 +26,8 @@ import com.project.buyzz.R // убедись, что есть R
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onProductClick: (Products) -> Unit,
-    onCartClick: () -> Unit
+    onCartClick: () -> Unit,
+    onProfileClick: () -> Unit  // добавлен параметр
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -39,6 +40,15 @@ fun HomeScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_cart),
                             contentDescription = "Корзина",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_profile),
+                            contentDescription = "Профиль",
                             tint = Color.White
                         )
                     }

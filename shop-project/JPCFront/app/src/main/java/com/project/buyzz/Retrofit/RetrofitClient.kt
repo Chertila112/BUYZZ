@@ -1,5 +1,6 @@
+package com.project.buyzz.Retrofit
+
 import android.content.Context
-import android.content.SharedPreferences
 import com.google.gson.GsonBuilder
 import com.project.buyzz.API.ApiService
 import okhttp3.Interceptor
@@ -7,7 +8,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.sql.Timestamp
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
@@ -24,8 +24,7 @@ object RetrofitClient {
         token = shared.getString("token", null)
     }
 
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(Timestamp::class.java, TimestampAdapter())
+    val gson = GsonBuilder()
         .create()
 
     private val authInterceptor = Interceptor { chain ->

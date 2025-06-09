@@ -1,7 +1,9 @@
 package com.project.buyzz.viewModels
 
+import com.project.buyzz.Retrofit.RetrofitClient.apiService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.buyzz.Retrofit.RetrofitClient
 import com.project.buyzz.models.CartItems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,4 +38,30 @@ class CartViewModel : ViewModel() {
             }
         }
     }
+    fun updateItemQuantity(itemId: Int, delta: Int) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.updateCartItemQuantity(itemId, mapOf("delta" to delta))
+                if (response.isSuccessful) {
+                    loadCart()
+                }
+            } catch (e: Exception) {
+                _cartState.value = CartState.Error("Ошибка: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun removeItem(itemId: Int) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.deleteCartItem(itemId)
+                if (response.isSuccessful) {
+                    loadCart()
+                }
+            } catch (e: Exception) {
+                _cartState.value = CartState.Error("Ошибка: ${e.localizedMessage}")
+            }
+        }
+    }
+
 }

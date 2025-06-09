@@ -2,6 +2,7 @@ package com.project.buyzz.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.project.buyzz.Retrofit.RetrofitClient
 import com.project.buyzz.models.Products
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

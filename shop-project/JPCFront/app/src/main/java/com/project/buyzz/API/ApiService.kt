@@ -3,7 +3,9 @@ package com.project.buyzz.API
 import com.project.buyzz.models.*
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -16,6 +18,8 @@ interface ApiService {
     suspend fun login(
         @Body request: Map<String, String>
     ): Response<Map<String, Any>>
+
+
 
     @POST("/auth/register")
     suspend fun register(
@@ -44,6 +48,18 @@ interface ApiService {
         @Body item: Map<String, Int>
     ): Response<Unit>
 
+    @PATCH("/api/cart/items/{itemId}")
+    suspend fun updateCartItemQuantity(
+        @Path("itemId") itemId: Int,
+        @Body delta: Map<String, Int>
+    ): Response<Map<String, Any>>
+
+    @DELETE("/api/cart/remove/{itemId}")
+    suspend fun deleteCartItem(
+        @Path("itemId") itemId: Int
+    ): Response<Map<String, String>>
+
+
     // Orders
     @GET("/api/orders")
     suspend fun getUserOrders(): Response<List<Orders>>
@@ -60,6 +76,6 @@ interface ApiService {
 
     @POST("/api/orders")
     suspend fun createOrder(
-        @Body order: Orders
+        @Body order: Map<String, String>
     ): Response<Orders>
 }

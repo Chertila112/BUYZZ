@@ -1,16 +1,14 @@
 package com.project.buyzz.view
 
 import androidx.compose.foundation.Image
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,14 +22,26 @@ import com.project.buyzz.R
 import com.project.buyzz.models.CartItems
 import com.project.buyzz.viewModels.CartState
 import com.project.buyzz.viewModels.CartViewModel
+import com.project.buyzz.viewModels.OrderState
+import com.project.buyzz.viewModels.OrderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
+    onCheckoutClick: () -> Unit,
+    onProfileClick: () -> Unit,
     navController: NavController,
-    viewModel: CartViewModel = viewModel()
+    cartViewModel: CartViewModel = viewModel(),
+    orderViewModel: OrderViewModel = viewModel()
 ) {
-    val state by viewModel.cartState.collectAsState()
+    val cartState by cartViewModel.cartState.collectAsState()
+    val orderState by orderViewModel.orderState.collectAsState()
+
+    LaunchedEffect(orderState) {
+        if (orderState is OrderState.Success) {
+            onProfileClick()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -42,73 +52,108 @@ fun CartScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFCE4775),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFCE4775))
             )
-        }
-    ) { padding ->
-        when (state) {
-            is CartState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
+        },
+        bottomBar = {
+            if (cartState is CartState.Success) {
+                val total = (cartState as CartState.Success).items.sumOf { it.productPrice * it.quantity }
+                Surface(
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFC0446F))
-                }
-            }
-
-            is CartState.Success -> {
-                val items = (state as CartState.Success).items
-
-                if (items.isEmpty()) {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Корзина пуста")
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(items) { item ->
-                            CartItemCard(item)
+                        Text("Итого: $total руб.", style = MaterialTheme.typography.titleMedium)
+                        Button(onClick = onCheckoutClick) {
+                            Text("Оформить заказ")
                         }
                     }
                 }
             }
-
-            is CartState.Error -> {
-                Box(
+        }
+    ) { padding ->
+        when (cartState) {
+            is CartState.Loading -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFFC0446F))
+            }
+            is CartState.Success -> {
+                val items = (cartState as CartState.Success).items
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentAlignment = Alignment.Center
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = (state as CartState.Error).message,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    items(items) { item ->
+                        CartItemCard(
+                            item = item,
+                            onIncrease = { cartViewModel.updateItemQuantity(item.id, +1) },
+                            onDecrease = { cartViewModel.updateItemQuantity(item.id, -1) },
+                            onRemove = { cartViewModel.removeItem(item.id) }
+                        )
+                    }
                 }
             }
+            is CartState.Error -> Text(
+                text = (cartState as CartState.Error).message,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(16.dp)
+            )
         }
     }
 }
 
 @Composable
-fun CartItemCard(item: CartItems) {
-    // Получаем идентификатор ресурса по ID продукта
+fun OrderDialog(total: Double, onCancel: () -> Unit, onConfirm: (String) -> Unit) {
+    var address by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Оформление заказа") },
+        text = {
+            Column {
+                Text("Сумма заказа: $total руб.")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    placeholder = { Text("Введите адрес доставки") },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = address.isNotBlank(), onClick = { onConfirm(address) }) {
+                Text("Подтвердить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Отмена")
+            }
+        }
+    )
+}
+
+@Composable
+fun CartItemCard(
+    item: CartItems,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
+    onRemove: () -> Unit
+) {
     val imageResId = remember(item.productId) {
         val resourceName = "product_${item.productId}"
         val resId = getResourceId(resourceName)
@@ -134,10 +179,22 @@ fun CartItemCard(item: CartItems) {
                 contentScale = ContentScale.Crop
             )
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(item.productName, style = MaterialTheme.typography.titleMedium)
                 Text("Цена: ${item.productPrice} руб.", style = MaterialTheme.typography.bodyMedium)
-                Text("Количество: ${item.quantity}", style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDecrease) {
+                        Text("-")
+                    }
+                    Text(item.quantity.toString())
+                    IconButton(onClick = onIncrease) {
+                        Text("+")
+                    }
+                }
+            }
+
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Default.Delete, contentDescription = "Удалить")
             }
         }
     }
