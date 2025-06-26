@@ -41,7 +41,10 @@ fun MainNavigation() {
         composable("product/{productId}") { backStackEntry ->
             val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull()
             if (productId != null) {
-                ProductDetailsScreen(productId)
+                ProductDetailsScreen(
+                    productId = productId,
+                    navController = navController
+                )
             }
         }
 
@@ -59,9 +62,9 @@ fun MainNavigation() {
             )
         }
 
-
         composable("order_create") {
             OrderCreateScreen(
+                navController = navController,
                 orderViewModel = viewModel(),
                 onOrderCreated = {
                     navController.navigate("profile") {
@@ -72,7 +75,9 @@ fun MainNavigation() {
         }
 
         composable("profile") {
-            ProfileScreen()
+            ProfileScreen(
+                navController = navController
+            )
         }
     }
 }

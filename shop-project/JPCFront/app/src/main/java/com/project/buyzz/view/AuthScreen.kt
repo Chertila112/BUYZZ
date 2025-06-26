@@ -27,6 +27,7 @@ fun AuthScreen(
     var name by remember { mutableStateOf("") }
     var login by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
     val state by viewModel.authState.collectAsState()
 
@@ -77,15 +78,51 @@ fun AuthScreen(
             colors = pinkTextFieldColors()
         )
 
+        if (!isLogin) {
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Подтвердите пароль") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                colors = pinkTextFieldColors(),
+                isError = confirmPassword.isNotEmpty() && password != confirmPassword
+            )
+            
+            if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+                Text(
+                    text = "Пароли не совпадают",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                if (isLogin) viewModel.login(login, password)
-                else viewModel.register(name, login, password)
+                if (isLogin) {
+                    viewModel.login(login, password)
+                } else {
+                    // Validate password confirmation
+                    if (password == confirmPassword) {
+                        viewModel.register(name, login, password)
+                    }
+                }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = if (isLogin) {
+                login.isNotEmpty() && password.isNotEmpty()
+            } else {
+                name.isNotEmpty() && login.isNotEmpty() && password.isNotEmpty() && 
+                confirmPassword.isNotEmpty() && password == confirmPassword
+            }
         ) {
             Text("Продолжить", color = Color.White)
         }
@@ -94,6 +131,11 @@ fun AuthScreen(
 
         TextButton(onClick = {
             isLogin = !isLogin
+            // Clear fields when switching modes
+            name = ""
+            login = ""
+            password = ""
+            confirmPassword = ""
             viewModel.reset()
         }) {
             Text(
