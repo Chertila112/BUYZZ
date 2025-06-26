@@ -7,10 +7,25 @@ function Register() {
   const [name, setName] = useState('');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError('');
+
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+      setError('Пароли не совпадают');
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setError('Пароль должен содержать минимум 6 символов');
+      return;
+    }
 
     try {
       const { data } = await axios.post('http://localhost:3000/auth/register', { name, login, password });
@@ -21,9 +36,9 @@ function Register() {
       navigate('/');
     } catch (err) {
       if (err.response) {
-        alert(err.response.data.error || 'Ошибка регистрации');
+        setError(err.response.data.error || 'Ошибка регистрации');
       } else {
-        alert('Произошла ошибка во время регистрации');
+        setError('Произошла ошибка во время регистрации');
       }
       console.error('Error during registration', err);
     }
@@ -33,6 +48,8 @@ function Register() {
     <div className="login-container">
       <h1>Регистрация</h1>
       <form onSubmit={handleRegister} className="login-form">
+        {error && <p className="error">{error}</p>}
+        
         <label>
           Имя
           <input type="text" placeholder="Имя" value={name} onChange={e => setName(e.target.value)} required />
@@ -43,7 +60,25 @@ function Register() {
         </label>
         <label>
           Пароль
-          <input type="password" placeholder="Введите пароль" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input 
+            type="password" 
+            placeholder="Введите пароль" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+            required 
+            minLength={6}
+          />
+        </label>
+        <label>
+          Подтвердите пароль
+          <input 
+            type="password" 
+            placeholder="Повторите пароль" 
+            value={confirmPassword} 
+            onChange={e => setConfirmPassword(e.target.value)} 
+            required 
+            minLength={6}
+          />
         </label>
         <button type="submit">Зарегистрироваться</button>
       </form>
